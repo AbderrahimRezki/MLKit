@@ -12,7 +12,6 @@ def distance_matrix(A, B):
 
     return np.sqrt(AA + BB - 2 * AB)
 
-
 if __name__ == "__main__":
     X = np.array(
         [[1, 2, 3],

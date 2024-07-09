@@ -15,7 +15,4 @@ class Transformer(BaseEstimator):
 
 class Predictor(BaseEstimator):
     @abstractmethod
-    def predict(self): pass
-
-    @abstractmethod
-    def fit_predict(self, X): pass
+    def predict(self, X): pass
