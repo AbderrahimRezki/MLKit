@@ -15,7 +15,7 @@ class NaiveBayesClassifier:
         self.totals = {}
         self.classes = []
         self.attributes = []
-        self.n_attributes = []
+        self.n_attributes = 0
         self.smoothing_k = smoothing_k
 
     def fit(self, X: pd.DataFrame, y: np.ndarray):
