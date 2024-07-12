@@ -5,10 +5,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
+from base import Predictor
 import pandas as pd
 import numpy as np
 
-class NaiveBayesClassifier:
+class CategoricalNaiveBayesClassifier(Predictor):
     def __init__(self, smoothing_k = 1):
         self.priors = {}
         self.likelihoods = {}
