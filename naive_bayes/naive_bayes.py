@@ -5,11 +5,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from base import Predictor
 import pandas as pd
 import numpy as np
 
-class NaiveBayesClassifier(Predictor):
+class NaiveBayesClassifier:
     def __init__(self):
         self.priors = {}
         self.likelihoods = {}
@@ -49,25 +48,22 @@ class NaiveBayesClassifier(Predictor):
 
 
     def predict(self, X): 
-        predictions = [
-            dict(zip(self.classes, np.repeat(1, len(self.classes)))) 
-            for _ in range(len(X))
-        ]
+        return np.apply_along_axis(self.__predict, arr=X, axis=1)
 
-        final_pred = np.empty(len(X))
+    def __predict(self, x):
+        predictions = {class_: None for class_ in self.classes}
 
         for class_ in self.classes:
-            for attr in self.attributes:
-                conditional_attr = X.loc[:, attr]
+            to_multiply = np.zeros(len(x) + 1)
+            for i, attr in enumerate(self.attributes):
+                value = x[i]
+                to_multiply[i] = self.likelihoods[class_][attr][value]
 
-                for i, value in enumerate(conditional_attr):
-                    predictions[i][class_] *= self.likelihoods[class_][attr][value]
+            to_multiply[-1] = self.priors[class_]
+            predictions[class_] = np.multiply.reduce(to_multiply)
+        
+        return max(predictions.items(), key=lambda pair: pair[1])[0]
 
-
-        for i, pred in enumerate(predictions):
-            final_pred[i] = max(pred.items(), key=lambda x: x[1])[0]
-
-        return final_pred
 
 
 if __name__ == "__main__":
