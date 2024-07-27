@@ -9,14 +9,18 @@ from base import Predictor
 import pandas as pd
 import numpy as np
 
+
 class CategoricalNaiveBayesClassifier(Predictor):
-    def __init__(self, smoothing_k = 1):
+    def __init__(self, smoothing_k = 1, smoothing = False):
         self.priors = {}
         self.likelihoods = {}
-        self.totals = {}
+
         self.classes = []
         self.attributes = []
+        self.attribute_values = {}
         self.n_attributes = 0
+
+        self.smoothing = smoothing
         self.smoothing_k = smoothing_k
 
     def fit(self, X: pd.DataFrame, y: np.ndarray):
@@ -25,7 +29,13 @@ class CategoricalNaiveBayesClassifier(Predictor):
 
         self.priors = dict(zip(self.classes, probabilities))
         self.attributes = X.columns.to_list()
+        self.attribute_values = {}
         self.n_attributes = len(self.attributes)
+
+        for attr in self.attributes:
+            attr_values = np.unique(X.loc[:, attr])
+            self.attribute_values[attr] = attr_values.tolist()
+
 
         """
         Likelihoods:
@@ -45,12 +55,24 @@ class CategoricalNaiveBayesClassifier(Predictor):
             self.likelihoods[class_] = {}
 
             conditional_distribution = X[y == class_]
-            self.totals[class_] = len(conditional_distribution)
+            total = len(conditional_distribution)
+
             
             for attr in self.attributes:
+                attr_values = self.attribute_values.get(attr, [])
+                self.likelihoods[class_][attr] = dict(zip(attr_values, np.zeros(len(attr_values))))
+                
                 conditional_attr = conditional_distribution.loc[:, attr]
                 values, counts = np.unique(conditional_attr, return_counts=True)
-                self.likelihoods[class_][attr] = dict(zip(values, counts / self.totals[class_]))
+
+                self.likelihoods[class_][attr].update(dict(zip(values, counts / total)))
+
+                if self.smoothing:
+                    counts = list(self.likelihoods[class_][attr].values())
+                    probabilities = self.__get_smooth(np.array(counts), total)
+
+                    self.likelihoods[class_][attr].update(dict(zip(attr_values, probabilities)))
+
 
     def predict(self, X): 
         return np.apply_along_axis(self.__predict, arr=X, axis=1)
@@ -61,14 +83,8 @@ class CategoricalNaiveBayesClassifier(Predictor):
         for class_ in self.classes:
             probabilities = self.__fill_probabilities(x, class_)
 
-            if (probabilities == 0).any():
-                class_total = self.totals[class_]
-                counts = probabilities * class_total
-
-                probabilities = self.__get_smooth(counts, class_total)
-
             predictions[class_] = np.multiply.reduce(probabilities)
-            assert predictions[class_] > 0, "Smoothing failed."
+            assert predictions[class_] > 0, "Found a class with probability 0, you might need to set smoothing = True."
 
         return max(predictions.items(), key=lambda pair: pair[1])[0]
 
@@ -102,10 +118,25 @@ if __name__ == "__main__":
 
     print(X.head())
  
-    clf = NaiveBayesClassifier()
+    clf = CategoricalNaiveBayesClassifier()
     clf.fit(X, y)
 
-    X[1,0] = -1
     y_pred = clf.predict(X)
-    print((y_pred == y).sum() / len(X))
+    print("Accuracy on Titanic: ", (y_pred == y).sum() / len(X))
+
+
+
+    # This data is designed specifically to fail the CNB when no smoothing is applied
+    # Try it with and without smoothing
+    import pandas as pd
+
+    X = pd.DataFrame(np.concatenate((np.zeros(50), np.ones(50))), columns=["dummy"])
+    y = np.concatenate((np.zeros(50), np.ones(50)))
+
+    clf = CategoricalNaiveBayesClassifier(smoothing=True)
+    clf.fit(X, y)
+
+    y_pred = clf.predict(X)
+    print("Accuracy With Smoothing: ", (y_pred == y).sum()  / len(X))
+
 

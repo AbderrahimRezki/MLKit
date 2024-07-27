@@ -8,6 +8,7 @@ sys.path.append(parent_dir)
 from base import Predictor
 import numpy as np
 import pandas as pd
+from metrics import accuracy_score
 
 
 class GaussianNaiveBayesClassifier:
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     clf.fit(X, y)
     y_pred = clf.predict(X)
 
-    print((y_pred == y).sum() / len(X))
+    # print((y_pred == y).sum() / len(X))
+    print(accuracy_score(y_pred, y))
 
  
